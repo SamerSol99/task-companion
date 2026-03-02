@@ -1,9 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import type { Task } from "@/types/task";
 
 const STORAGE_KEY = "task-tracker-tasks";
 
-function loadTasks(): Task[] {
+let tasks: Task[] = loadFromStorage();
+let listeners: Array<() => void> = [];
+
+function loadFromStorage(): Task[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
@@ -12,16 +15,30 @@ function loadTasks(): Task[] {
   }
 }
 
-function saveTasks(tasks: Task[]) {
+function persist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
 }
 
-export function useTaskStore() {
-  const [tasks, setTasks] = useState<Task[]>(loadTasks);
+function emitChange() {
+  persist();
+  for (const listener of listeners) {
+    listener();
+  }
+}
 
-  useEffect(() => {
-    saveTasks(tasks);
-  }, [tasks]);
+function subscribe(listener: () => void) {
+  listeners = [...listeners, listener];
+  return () => {
+    listeners = listeners.filter((l) => l !== listener);
+  };
+}
+
+function getSnapshot() {
+  return tasks;
+}
+
+export function useTaskStore() {
+  const currentTasks = useSyncExternalStore(subscribe, getSnapshot);
 
   const addTask = useCallback((task: Omit<Task, "id" | "createdAt">) => {
     const newTask: Task = {
@@ -29,23 +46,27 @@ export function useTaskStore() {
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
     };
-    setTasks((prev) => [newTask, ...prev]);
+    tasks = [newTask, ...tasks];
+    emitChange();
   }, []);
 
-  const updateTask = useCallback((id: string, updates: Partial<Omit<Task, "id" | "createdAt">>) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
-    );
-  }, []);
+  const updateTask = useCallback(
+    (id: string, updates: Partial<Omit<Task, "id" | "createdAt">>) => {
+      tasks = tasks.map((t) => (t.id === id ? { ...t, ...updates } : t));
+      emitChange();
+    },
+    []
+  );
 
   const deleteTask = useCallback((id: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+    tasks = tasks.filter((t) => t.id !== id);
+    emitChange();
   }, []);
 
   const getTask = useCallback(
-    (id: string) => tasks.find((t) => t.id === id),
-    [tasks]
+    (id: string) => currentTasks.find((t) => t.id === id),
+    [currentTasks]
   );
 
-  return { tasks, addTask, updateTask, deleteTask, getTask };
+  return { tasks: currentTasks, addTask, updateTask, deleteTask, getTask };
 }
