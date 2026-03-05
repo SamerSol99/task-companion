@@ -33,45 +33,26 @@ const TaskCard = ({ task, onDelete }: TaskCardProps) => {
     <Card className="group transition-shadow hover:shadow-md">
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
-          <Link to={`/task/${task.id}`} className="min-w-0 flex-1">
-            <h3
-              className={`font-semibold text-card-foreground ${
-                task.status === "done" ? "line-through opacity-60" : ""
-              }`}
-            >
+          <Link to={`/tasks/${task.id}`} className="min-w-0 flex-1">
+            <h3 className={`font-semibold text-card-foreground ${task.status === "done" ? "line-through opacity-60" : ""}`}>
               {task.title}
             </h3>
             {task.description && (
-              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                {task.description}
-              </p>
+              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{task.description}</p>
             )}
           </Link>
           <Button
-            variant="ghost"
-            size="icon"
+            variant="ghost" size="icon"
             className="h-8 w-8 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 text-muted-foreground hover:text-destructive"
-            onClick={(e) => {
-              e.preventDefault();
-              onDelete(task.id);
-            }}
+            onClick={(e) => { e.preventDefault(); onDelete(task.id); }}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
-
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Badge variant="outline" className={priorityStyles[task.priority]}>
-            {PRIORITY_LABELS[task.priority]}
-          </Badge>
-          <Badge variant="secondary" className={statusStyles[task.status]}>
-            {STATUS_LABELS[task.status]}
-          </Badge>
-          <span
-            className={`ml-auto flex items-center gap-1 text-xs ${
-              overdue ? "text-priority-high font-medium" : "text-muted-foreground"
-            }`}
-          >
+          <Badge variant="outline" className={priorityStyles[task.priority]}>{PRIORITY_LABELS[task.priority]}</Badge>
+          <Badge variant="secondary" className={statusStyles[task.status]}>{STATUS_LABELS[task.status]}</Badge>
+          <span className={`ml-auto flex items-center gap-1 text-xs ${overdue ? "text-priority-high font-medium" : "text-muted-foreground"}`}>
             <Calendar className="h-3 w-3" />
             {format(dueDate, "dd. MMM yyyy", { locale: de })}
           </span>
